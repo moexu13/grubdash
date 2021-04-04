@@ -1,6 +1,7 @@
 const path = require("path");
 const errorHandler = require(path.resolve("src/errors/errorHandler"));
 const notFound = require(path.resolve("src/errors/notFound"));
+const isProvided = require(path.resolve("src/utils/helpers"));
 
 // Use the existing dishes data
 const dishes = require(path.resolve("src/data/dishes-data"));
@@ -10,7 +11,7 @@ const nextId = require("../utils/nextId");
 
 const dishExists = (req, res, next) => {
   const { dishId } = req.params;
-  const foundDish = dishes.find(dish => dish.id === Number(dishId));
+  const foundDish = dishes.find(dish => dish.id === dishId);
   if (foundDish) {
     res.locals.dish = foundDish;
     return next();
@@ -19,14 +20,50 @@ const dishExists = (req, res, next) => {
   }
 }
 
-const nameProvided = (req, res) => {
+const nameProvided = (req, res, next) => {
   const { data: { name } = {} } = req.body;
-  if (name && name.length > 0) {
+  if (isProvided(name)) {
     next();
   } else {
     errorHandler({
       status: 400,
-      message: "Dish name required"
+      message: "Dish must include a name"
+    });
+  }
+}
+
+const descriptionProvided = (req, res, next) => {
+  const { data: { description } = {} } = req.params;
+  if (isProvided(description)) {
+    next();
+  } else {
+    errorHandler({
+      status: 400,
+      message: "Dish must include a description"
+    });
+  }
+}
+
+const priceProvided = (req, res, next) => {
+  const { data: { price } = {} } = req.body;
+  if (isProvided(price)) {
+    next();
+  } else {
+    errorHandler({
+      status: 400,
+      message: "Dish must include a price"
+    });
+  }
+}
+
+const checkPrice = (req, res, next) => {
+  const { data: { price } = {} } = req.body;
+  if (Number.isInteger(price) && price > 0) {
+    next();
+  } else {
+    errorHandler({
+      status: 400,
+      message: "Dish must have a price that is an integer greater than 0"
     });
   }
 }
@@ -49,4 +86,5 @@ const create = (req, res) => {
 module.exports = {
   list,
   read: [dishExists, read],
+  create: [nameProvided, descriptionProvided, priceProvided, checkPrice, create],
 }
