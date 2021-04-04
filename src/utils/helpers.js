@@ -1,5 +1,5 @@
 const isProvided = thing => {
-  return thing && thing.length > 0;
+  return thing && thing !== undefined && thing !== "";
 }
 
-module.exports = { isProvided };
+module.exports = isProvided;

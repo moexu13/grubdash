@@ -16,7 +16,7 @@ const dishExists = (req, res, next) => {
     res.locals.dish = foundDish;
     return next();
   } else {
-    return notFound();
+    return notFound(req, res, next);
   }
 }
 
@@ -28,19 +28,19 @@ const nameProvided = (req, res, next) => {
     errorHandler({
       status: 400,
       message: "Dish must include a name"
-    });
+    }, req, res, next);
   }
 }
 
 const descriptionProvided = (req, res, next) => {
-  const { data: { description } = {} } = req.params;
+  const { data: { description } = {} } = req.body;
   if (isProvided(description)) {
     next();
   } else {
     errorHandler({
       status: 400,
       message: "Dish must include a description"
-    });
+    }, req, res, next);
   }
 }
 
@@ -52,19 +52,32 @@ const priceProvided = (req, res, next) => {
     errorHandler({
       status: 400,
       message: "Dish must include a price"
-    });
+    }, req, res, next);
+  }
+}
+
+const imageUrlProvided = (req, res, next) => {
+  const { data: { image_url } = {} } = req.body;
+  if (isProvided(image_url)) {
+    next();
+  } else {
+    errorHandler({
+      status: 400,
+      message: "Dish must include a image_url"
+    }, req, res, next);
   }
 }
 
 const checkPrice = (req, res, next) => {
   const { data: { price } = {} } = req.body;
-  if (Number.isInteger(price) && price > 0) {
+  const testInt = Number(price);
+  if (Number.isInteger(testInt) && testInt > 0) {
     next();
   } else {
     errorHandler({
       status: 400,
       message: "Dish must have a price that is an integer greater than 0"
-    });
+    }, req, res, next);
   }
 }
 
@@ -78,13 +91,38 @@ const read = (req, res) => {
 }
 
 const create = (req, res) => {
-  const { data: { dish } = {} } = req.body;
-  console.log(dish);
-  res.send(200);
+  const { data: { name, description, price, image_url } = {} } = req.body;
+  const id = nextId();
+  const newDish = {
+    id,
+    name,
+    description,
+    price,
+    image_url
+  };
+  dishes.push(newDish);
+  res.status(201).json({ data: newDish });
+}
+
+const update = (req, res, next) => {
+  const dish = res.locals.dish;
+  const { data: { name, description, price, image_url } = {} } = req.body;
+  dish.name = name;
+  dish.description = description;
+  dish.price = price;
+  dish.image_url = image_url;
+  res.json({ data: dish });
 }
 
 module.exports = {
   list,
   read: [dishExists, read],
-  create: [nameProvided, descriptionProvided, priceProvided, checkPrice, create],
+  create: [
+    nameProvided, 
+    descriptionProvided, 
+    priceProvided, 
+    imageUrlProvided, 
+    checkPrice, 
+    create],
+  update: [dishExists, update],
 }
