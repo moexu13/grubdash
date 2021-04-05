@@ -1,7 +1,7 @@
 const path = require("path");
 const errorHandler = require(path.resolve("src/errors/errorHandler"));
 const notFound = require(path.resolve("src/errors/notFound"));
-const isProvided = require(path.resolve("src/utils/helpers"));
+const helpers = require(path.resolve("src/utils/helpers"));
 
 // Use the existing dishes data
 const dishes = require(path.resolve("src/data/dishes-data"));
@@ -22,7 +22,7 @@ const dishExists = (req, res, next) => {
 
 const nameProvided = (req, res, next) => {
   const { data: { name } = {} } = req.body;
-  if (isProvided(name)) {
+  if (helpers.isProvided(name)) {
     next();
   } else {
     errorHandler({
@@ -34,7 +34,7 @@ const nameProvided = (req, res, next) => {
 
 const descriptionProvided = (req, res, next) => {
   const { data: { description } = {} } = req.body;
-  if (isProvided(description)) {
+  if (helpers.isProvided(description)) {
     next();
   } else {
     errorHandler({
@@ -46,7 +46,7 @@ const descriptionProvided = (req, res, next) => {
 
 const priceProvided = (req, res, next) => {
   const { data: { price } = {} } = req.body;
-  if (isProvided(price)) {
+  if (helpers.isProvided(price)) {
     next();
   } else {
     errorHandler({
@@ -58,7 +58,7 @@ const priceProvided = (req, res, next) => {
 
 const imageUrlProvided = (req, res, next) => {
   const { data: { image_url } = {} } = req.body;
-  if (isProvided(image_url)) {
+  if (helpers.isProvided(image_url)) {
     next();
   } else {
     errorHandler({
@@ -70,13 +70,25 @@ const imageUrlProvided = (req, res, next) => {
 
 const checkPrice = (req, res, next) => {
   const { data: { price } = {} } = req.body;
-  const testInt = Number(price);
-  if (Number.isInteger(testInt) && testInt > 0) {
+  if (helpers.isPositiveInteger(price)) {
     next();
   } else {
     errorHandler({
       status: 400,
       message: "Dish must have a price that is an integer greater than 0"
+    }, req, res, next);
+  }
+}
+
+const idsMatch = (req, res, next) => {
+  const { dishId } = req.params;
+  const { data: { id } = {} } = req.body;
+  if (!id || dishId === id) {
+    return next();
+  } else {
+    errorHandler({
+      status: 400,
+      message: `Dish id does not match route id. Dish: ${id}, Route: ${dishId}`
     }, req, res, next);
   }
 }
@@ -111,6 +123,7 @@ const update = (req, res, next) => {
   dish.description = description;
   dish.price = price;
   dish.image_url = image_url;
+  res.locals.dish = dish;
   res.json({ data: dish });
 }
 
@@ -124,5 +137,13 @@ module.exports = {
     imageUrlProvided, 
     checkPrice, 
     create],
-  update: [dishExists, update],
+  update: [
+    dishExists, 
+    nameProvided,
+    descriptionProvided,
+    priceProvided,
+    imageUrlProvided,
+    checkPrice, 
+    idsMatch, 
+    update],
 }
